@@ -55,12 +55,14 @@ window.onload = function () {
         return;
       }
 
+      const imageSrc = `/get_image?user_id=${user_id}&title=${encodeURIComponent(result.title.replace(/ /g, "_"))}`;
+
       document.getElementById("recipeResult").innerHTML = `
         <h2>${result.title}</h2>
         <p><strong>Description:</strong> ${result.description}</p>
         <p><strong>Ingredients:</strong> ${Array.isArray(result.ingredients) ? result.ingredients.join(", ") : result.ingredients}</p>
         <p><strong>Procedures:</strong> ${Array.isArray(result.procedures) ? result.procedures.join(", ") : result.procedures}</p>
-        ${result.image_path ? `<img src="/get_image?user_id=${user_id}&title=${encodeURIComponent(result.title.replace(/ /g, "_"))}" alt="Recipe Image">` : ""}
+        ${result.image_path ? `<img src="${imageSrc}" alt="Recipe Image" onerror="this.onerror=null; this.src='fallback.png';">` : ""}
       `;
     } catch (err) {
       document.getElementById("recipeResult").innerHTML = `<p>Request failed: ${err.message}</p>`;
