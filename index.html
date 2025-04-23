@@ -14,7 +14,7 @@ function getCookie(name) {
 async function ensureUserId() {
   let userId = getCookie("user_id");
   if (!userId) {
-    const response = await fetch("/get_id");
+    const response = await fetch("https://food-gen.onrender.com/get_id"); // Use the full backend URL
     const data = await response.json();
     userId = data.user_id;
     document.cookie = `user_id=${userId}; path=/; max-age=3153600000`; // 100 years
@@ -55,7 +55,7 @@ window.onload = function () {
         return;
       }
 
-      const imageSrc = `/get_image?user_id=${user_id}&title=${encodeURIComponent(result.title.replace(/ /g, "_"))}`;
+      const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${user_id}&title=${encodeURIComponent(result.title.replace(/ /g, "_"))}`;
 
       document.getElementById("recipeResult").innerHTML = `
         <h2>${result.title}</h2>
