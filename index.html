@@ -14,7 +14,7 @@ function getCookie(name) {
 async function ensureUserId() {
   let userId = getCookie("user_id");
   if (!userId) {
-    const response = await fetch("https://food-gen.onrender.com/get_id"); // Use the full backend URL
+    const response = await fetch("https://food-gen.onrender.com/get_id");
     const data = await response.json();
     userId = data.user_id;
     document.cookie = `user_id=${userId}; path=/; max-age=3153600000`; // 100 years
@@ -25,6 +25,12 @@ async function ensureUserId() {
 window.onload = function () {
   document.getElementById("recipeForm").addEventListener("submit", async function(event) {
     event.preventDefault();
+
+    // Show loading bar
+    document.getElementById("loadingBar").style.display = "block";
+    let progress = 0;
+    let progressBar = document.getElementById("progressBar");
+    progressBar.value = progress;
 
     const form = event.target;
     const formData = new FormData(form);
@@ -48,15 +54,39 @@ window.onload = function () {
         body: JSON.stringify(data)
       });
 
+      // Regular progress increment + pause at 83%
+      const progressInterval = setInterval(() => {
+        progress += 10;
+        progressBar.value = progress;
+
+        if (progress < 83) {
+          return;
+        }
+
+        // Pause at 83% until recipe is loaded
+        if (progress === 83) {
+          progress += 17;
+          progressBar.value = progress;
+          clearInterval(progressInterval);
+
+          setTimeout(() => {
+            document.getElementById("recipeResult").innerHTML = `
+              <h2>Recipe loaded!</h2>
+              <p>Loading complete...</p>
+            `;
+          }, 1000);
+        }
+      }, 300);
+
       const result = await response.json();
 
       if (result.error) {
         document.getElementById("recipeResult").innerHTML = `<p>Error: ${result.error}</p>`;
+        document.getElementById("loadingBar").style.display = "none";
         return;
       }
 
       const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${user_id}&title=${encodeURIComponent(result.title.replace(" ", "_"))}`;
-
       document.getElementById("recipeResult").innerHTML = `
         <h2>${result.title.replace("_", " ")}</h2>
         <p><strong>Description:</strong> ${result.description}</p>
@@ -64,8 +94,10 @@ window.onload = function () {
         <p><strong>Procedures:</strong> ${Array.isArray(result.procedures) ? result.procedures.join(", ") : result.procedures}</p>
         ${result.image_path ? `<img src="${imageSrc}" alt="Recipe Image">` : ""}
       `;
+      document.getElementById("loadingBar").style.display = "none";
     } catch (err) {
       document.getElementById("recipeResult").innerHTML = `<p>Request failed: ${err.message}</p>`;
+      document.getElementById("loadingBar").style.display = "none";
     }
   });
 };
