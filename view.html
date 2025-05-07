@@ -18,7 +18,104 @@
         </ul>
     </div>
     <div class="divider"></div>
-    <div class="content"></div>
+    <div class="content">
+        <h2>Select a Recipe</h2>
+        <select id="recipeSelect">
+            <option disabled selected>Loading...</option>
+        </select>
+        <button onclick="fetchRecipe()">View Recipe</button>
+    </div>
 </div>
+<div id="recipeModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle"></h2>
+        <img id="modalImage" style="max-width: 300px;">
+        <h3>Ingredients</h3>
+        <p id="modalIngredients"></p>
+        <h3>Instructions</h3>
+        <p id="modalInstructions"></p>
+    </div>
+</div>
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+}
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    text-align: left;
+}
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+</style>
+<script>
+// Helper to get cookie value
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// Populate recipe dropdown
+const userId = getCookie("user_id");
+fetch(`https://food-gen.onrender.com/get_recipes?user_id=${userId}`)
+    .then(response => response.json())
+    .then(data => {
+        const select = document.getElementById("recipeSelect");
+        select.innerHTML = "";
+        data.titles.forEach(title => {
+            const option = document.createElement("option");
+            option.value = title;
+            option.textContent = title;
+            select.appendChild(option);
+        });
+    })
+    .catch(err => {
+        console.error("Failed to load recipes", err);
+    });
+
+// Fetch and show selected recipe
+function fetchRecipe() {
+    const selectedTitle = document.getElementById("recipeSelect").value;
+    fetch("https://food-gen.onrender.com/get_recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, title: selectedTitle })
+    })
+    .then(res => res.json())
+    .then(data => {
+        const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${userId}&title=${encodeURIComponent(selectedTitle.replace(" ", "_"))}`;
+        document.getElementById("modalTitle").textContent = data.title;
+        document.getElementById("modalIngredients").textContent = data.ingredients;
+        document.getElementById("modalInstructions").textContent = data.instructions;
+        document.getElementById("modalImage").src = imageSrc;
+        document.getElementById("recipeModal").style.display = "block";
+    })
+    .catch(err => {
+        console.error("Error fetching recipe", err);
+    });
+}
+
+function closeModal() {
+    document.getElementById("recipeModal").style.display = "none";
+}
+</script>
 </body>
 </html>
