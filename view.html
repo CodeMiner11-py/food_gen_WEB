@@ -23,7 +23,7 @@
         <select id="recipeSelect">
             <option disabled selected>Loading...</option>
         </select>
-        <button onclick="fetchRecipe()">View Recipe</button>
+        <button id="viewRecipeBtn">View Recipe</button>
     </div>
 </div>
 <div id="recipeModal" class="modal" style="display:none;">
@@ -125,6 +125,9 @@ function fetchRecipe() {
 function closeModal() {
     document.getElementById("recipeModal").style.display = "none";
 }
+
+// Attach event listener to the button
+document.getElementById("viewRecipeBtn").addEventListener("click", fetchRecipe);
 </script>
 </body>
 </html>
