@@ -73,30 +73,25 @@ function getCookie(name) {
     if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-// Ensure user_id is available
-const userId = getCookie("user_id");
-if (!userId) {
-    alert("No user ID found. Redirecting to home.");
-    window.location.href = "index.html";
-}
-
 // Populate recipe dropdown
+const userId = getCookie("user_id");
 fetch(`https://food-gen.onrender.com/get_recipes?user_id=${userId}`)
     .then(response => response.json())
     .then(data => {
         const select = document.getElementById("recipeSelect");
         select.innerHTML = "";
-        if (data.titles.length === 0) {
+
+        if (!data.recipes || data.recipes.length === 0) {
             const option = document.createElement("option");
             option.disabled = true;
             option.selected = true;
             option.textContent = "No recipes found.";
             select.appendChild(option);
         } else {
-            data.titles.forEach(title => {
+            data.recipes.forEach(recipe => {
                 const option = document.createElement("option");
-                option.value = title;
-                option.textContent = title;
+                option.value = recipe.title;
+                option.textContent = recipe.title;
                 select.appendChild(option);
             });
         }
@@ -108,10 +103,6 @@ fetch(`https://food-gen.onrender.com/get_recipes?user_id=${userId}`)
 // Fetch and show selected recipe
 function fetchRecipe() {
     const selectedTitle = document.getElementById("recipeSelect").value;
-    if (!selectedTitle) {
-        alert("Please select a recipe.");
-        return;
-    }
     fetch("https://food-gen.onrender.com/get_recipe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
