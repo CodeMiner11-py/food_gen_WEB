@@ -36,6 +36,16 @@
         <h3>Instructions</h3>
         <p id="modalInstructions"></p>
     </div>
+.
+</div>
+<div class="divider"></div>
+<h1>Nutrition Facts Generator</h1>
+<label for="nutritionInput">Enter your recipe here:</label>
+<input type="text" id="nutritionInput" style="width: 80%; margin-top: 10px;">
+<button id="submitNutritionBtn" style="display: block; margin-top: 10px;">Submit</button>
+<div id="nutritionResults" style="margin-top: 20px; display: none;">
+    <h1>Results</h1>
+    <p id="nutritionOutput"></p>
 </div>
 <style>
 .modal {
@@ -126,8 +136,35 @@ function closeModal() {
     document.getElementById("recipeModal").style.display = "none";
 }
 
-// Attach event listener to the button
-document.getElementById("viewRecipeBtn").addEventListener("click", fetchRecipe);
+</script>
+<script>
+document.getElementById("submitNutritionBtn").addEventListener("click", () => {
+    const userInput = document.getElementById("nutritionInput").value;
+    fetch("https://food-gen.onrender.com/get_facts", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ recipe_text: userInput })
+    })
+    .then(res => res.json())
+    .then(data => {
+        const facts = data.facts;
+        let formatted = "";
+        for (const [key, value] of Object.entries(facts)) {
+            const label = key.replace(/([a-z])([A-Z])/g, '$1 $2')
+                              .replace(/^./, str => str.toUpperCase());
+            formatted += `- ${label}: ${value}\n`;
+        }
+        document.getElementById("nutritionOutput").textContent = formatted;
+        document.getElementById("nutritionResults").style.display = "block";
+    })
+    .catch(err => {
+        document.getElementById("nutritionOutput").textContent = "Failed to fetch nutrition facts.";
+        document.getElementById("nutritionResults").style.display = "block";
+        console.error("Error fetching nutrition facts", err);
+    });
+});
 </script>
 </body>
 </html>
