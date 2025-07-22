@@ -19,79 +19,108 @@
     </style>
 
     <script>
-        let videoStream = null;
+        function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
 
-        async function startCamera() {
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const video = document.getElementById("videoPreview");
-            video.srcObject = stream;
-            videoStream = stream;
-          } catch (err) {
-            alert("Camera access denied or unavailable.");
-            console.error(err);
-          }
-        }
+async function uploadImage(event) {
+  event.preventDefault();
+  const fileInput = document.getElementById("imageUpload");
+  const file = fileInput.files[0];
+  if (!file) {
+    alert("Please select an image.");
+    return;
+  }
 
-        function captureAndScan() {
-          const video = document.getElementById("videoPreview");
-          const canvas = document.getElementById("snapshot");
-          const ctx = canvas.getContext("2d");
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const user_id = getCookie("user_id");
+  if (!user_id) {
+    alert("User ID not found. Please generate a recipe first.");
+    return;
+  }
 
-          canvas.toBlob(blob => {
-            const formData = new FormData();
-            formData.append("image", blob, "snapshot.png");
+  const formData = new FormData();
+  formData.append("image", file);
+  formData.append("user_id", user_id);
 
-            fetch("https://food-gen.onrender.com/scan_recipe", {
-              method: "POST",
-              body: formData
-            })
-            .then(res => res.json())
-            .then(data => showResult(data))
-            .catch(err => {
-              document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
-            });
-          }, "image/png");
-        }
+  try {
+    const res = await fetch("https://food-gen.onrender.com/scan_recipe", {
+      method: "POST",
+      body: formData
+    });
 
-        function uploadImage(event) {
-          event.preventDefault();
-          const file = document.getElementById("imageUpload").files[0];
-          if (!file) return alert("Choose an image first!");
+    const data = await res.json();
+    showResult(data);
 
-          const formData = new FormData();
-          formData.append("image", file);
+  } catch (err) {
+    document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
+  }
+}
 
-          fetch("https://food-gen.onrender.com/scan_recipe", {
-            method: "POST",
-            body: formData
-          })
-          .then(res => res.json())
-          .then(data => showResult(data))
-          .catch(err => {
-            document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
-          });
-        }
+let videoStream = null;
 
-        function showResult(data) {
-          const resultBox = document.getElementById("scanResult");
-          if (data.error) {
-            resultBox.innerHTML = `<p><strong>Error:</strong> ${data.error}</p>`;
-            return;
-          }
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const video = document.getElementById("videoPreview");
+    video.srcObject = stream;
+    videoStream = stream;
+  } catch (err) {
+    alert("Camera access denied or unavailable.");
+    console.error(err);
+  }
+}
 
-          resultBox.innerHTML = `
-            <h3>${data.title}</h3>
-            <p><strong>Description:</strong> ${data.description}</p>
-            <p><strong>Ingredients:</strong> ${data.ingredients.join(", ")}</p>
-            <p><strong>Procedures:</strong> ${data.procedures.join(", ")}</p>
-          `;
-        }
+function captureAndScan() {
+  const video = document.getElementById("videoPreview");
+  const canvas = document.getElementById("snapshot");
+  const ctx = canvas.getContext("2d");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        window.onload = startCamera;
+  canvas.toBlob(async (blob) => {
+    const user_id = getCookie("user_id");
+    if (!user_id) {
+      alert("User ID not found. Please generate a recipe first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", blob, "snapshot.png");
+    formData.append("user_id", user_id);
+
+    try {
+      const res = await fetch("https://food-gen.onrender.com/scan_recipe", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      showResult(data);
+    } catch (err) {
+      document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
+    }
+  }, "image/png");
+}
+
+function showResult(data) {
+  const resultBox = document.getElementById("scanResult");
+  if (data.error) {
+    resultBox.innerHTML = `<p><strong>Error:</strong> ${data.error}</p>`;
+    return;
+  }
+
+  resultBox.innerHTML = `
+    <h3>${data.title}</h3>
+    <p><strong>Description:</strong> ${data.description}</p>
+    <p><strong>Ingredients:</strong> ${data.ingredients.join(", ")}</p>
+    <p><strong>Procedures:</strong> ${data.procedures.join(", ")}</p>
+  `;
+}
+
+window.onload = startCamera;
+
     </script>
 </head>
 
@@ -124,7 +153,8 @@
             <br>
             <button type="submit">Scan Uploaded Image</button>
         </form>
-
+        <div>This may take some time, so hold on tight! (Est. 5 sec or less)</div>
+        <div>You can view your recipe in <a href="view.html">View Recipes</a>.</div>
         <div id="scanResult" class="result"></div>
     </div>
 </div>
