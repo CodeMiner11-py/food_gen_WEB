@@ -1,13 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>View Pear Recipes</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 <div style="text-align: center;">
-    <img src="pear.png" width="65" style="margin-bottom: 0px; padding-bottom: 0px;">
+    <img src="pear.png" width="65" style="margin-bottom: 0px; padding-bottom: 0px;" />
     <h1>Pear: Recipes Creator</h1>
     <div class="divider"></div>
     <div id="navigation">
@@ -20,151 +47,158 @@
     <div class="divider"></div>
     <div class="content">
         <h2>Select a Recipe</h2>
-        <select id="recipeSelect">
-            <option disabled selected>Loading...</option>
+        <select id="recipeSelect" disabled>
+            <option>Loading...</option>
         </select>
-        <button id="viewRecipeBtn">View Recipe</button>
+        <button id="viewRecipeBtn" disabled>View Recipe</button>
     </div>
 </div>
+
 <div id="recipeModal" class="modal" style="display:none;">
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
         <h2 id="modalTitle"></h2>
-        <img id="modalImage" style="max-width: 300px;">
+        <img id="modalImage" style="max-width: 300px;" alt="Recipe Image" />
         <h3>Ingredients</h3>
         <p id="modalIngredients"></p>
         <h3>Instructions</h3>
         <p id="modalInstructions"></p>
+        <h3>Nutrition Facts</h3>
+        <pre id="modalNutrition">Loading...</pre>
     </div>
-.
 </div>
-<div class="divider"></div>
-<h1>Nutrition Facts Generator</h1>
-<label for="nutritionInput">Enter your recipe here:</label>
-<input type="text" id="nutritionInput" style="width: 80%; margin-top: 10px;">
-<button id="submitNutritionBtn" style="display: block; margin-top: 10px;">Submit</button>
-<div id="nutritionResults" style="margin-top: 20px; display: none;">
-    <h1>Results</h1>
-    <p id="nutritionOutput"></p>
-</div>
-<style>
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.6);
-}
-.modal-content {
-    background-color: #fff;
-    margin: 10% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 500px;
-    text-align: left;
-}
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-</style>
+
 <script>
-// Helper to get cookie value
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
 
-// Populate recipe dropdown
-const userId = getCookie("user_id");
-fetch(`https://food-gen.onrender.com/get_recipes?user_id=${userId}`)
-    .then(response => response.json())
-    .then(data => {
+    async function loadRecipes() {
+        const userId = getCookie("user_id");
         const select = document.getElementById("recipeSelect");
-        select.innerHTML = "";
+        const viewBtn = document.getElementById("viewRecipeBtn");
 
-        if (!data.recipes || data.recipes.length === 0) {
+        if (!userId) {
+            select.innerHTML = '';
             const option = document.createElement("option");
             option.disabled = true;
             option.selected = true;
-            option.textContent = "No recipes found.";
+            option.textContent = "User ID missing. Please create a recipe first.";
             select.appendChild(option);
-        } else {
+            select.disabled = true;
+            viewBtn.disabled = true;
+            return;
+        }
+
+        try {
+            const res = await fetch(`https://food-gen.onrender.com/get_recipes?user_id=${userId}`);
+            const data = await res.json();
+
+            select.innerHTML = '';
+            if (!data.recipes || data.recipes.length === 0) {
+                const option = document.createElement("option");
+                option.disabled = true;
+                option.selected = true;
+                option.textContent = "No recipes found.";
+                select.appendChild(option);
+                select.disabled = true;
+                viewBtn.disabled = true;
+                return;
+            }
+
             data.recipes.forEach(recipe => {
                 const option = document.createElement("option");
                 option.value = recipe.title;
                 option.textContent = recipe.title;
                 select.appendChild(option);
             });
+
+            select.disabled = false;
+            viewBtn.disabled = false;
+
+        } catch (e) {
+            console.error("Failed to load recipes", e);
+            select.innerHTML = '';
+            const option = document.createElement("option");
+            option.disabled = true;
+            option.selected = true;
+            option.textContent = "Error loading recipes.";
+            select.appendChild(option);
+            select.disabled = true;
+            viewBtn.disabled = true;
         }
-    })
-    .catch(err => {
-        console.error("Failed to load recipes", err);
-    });
+    }
 
-// Fetch and show selected recipe
-function fetchRecipe() {
-    const selectedTitle = document.getElementById("recipeSelect").value;
-    fetch("https://food-gen.onrender.com/get_recipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, title: selectedTitle })
-    })
-    .then(res => res.json())
-    .then(data => {
-        const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${userId}&title=${encodeURIComponent(selectedTitle.replace(" ", "_"))}`;
-        document.getElementById("modalTitle").textContent = data.title;
-        document.getElementById("modalIngredients").textContent = data.ingredients;
-        document.getElementById("modalInstructions").textContent = data.instructions;
-        document.getElementById("modalImage").src = imageSrc;
-        document.getElementById("recipeModal").style.display = "block";
-    })
-    .catch(err => {
-        console.error("Error fetching recipe", err);
-    });
-}
+    async function fetchRecipe() {
+        const userId = getCookie("user_id");
+        if (!userId) return alert("User ID missing. Please create a recipe first.");
 
-function closeModal() {
-    document.getElementById("recipeModal").style.display = "none";
-}
+        const selectedTitle = document.getElementById("recipeSelect").value;
+        if (!selectedTitle) return alert("Please select a recipe.");
 
-</script>
-<script>
-document.getElementById("submitNutritionBtn").addEventListener("click", () => {
-    const userInput = document.getElementById("nutritionInput").value;
-    fetch("https://food-gen.onrender.com/get_facts", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ recipe_text: userInput })
-    })
-    .then(res => res.json())
-    .then(data => {
-        const facts = data.facts;
-        let formatted = "";
-        for (const [key, value] of Object.entries(facts)) {
-            const label = key.replace(/([a-z])([A-Z])/g, '$1 $2')
-                              .replace(/^./, str => str.toUpperCase());
-            formatted += `- ${label}: ${value}\n`;
+        try {
+            // Using get_recipes endpoint to get the full recipe details
+            const res = await fetch(`https://food-gen.onrender.com/get_recipes?user_id=${userId}`);
+            const data = await res.json();
+            const recipe = data.recipes.find(r => r.title === selectedTitle);
+            if (!recipe) return alert("Recipe not found.");
+
+            const safeTitle = encodeURIComponent(selectedTitle.replace(/ /g, "_"));
+            const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${userId}&title=${safeTitle}`;
+
+            document.getElementById("modalTitle").textContent = recipe.title;
+            document.getElementById("modalIngredients").textContent = Array.isArray(recipe.ingredients) ? recipe.ingredients.join(", ") : recipe.ingredients;
+            document.getElementById("modalInstructions").textContent = Array.isArray(recipe.procedures) ? recipe.procedures.join(", ") : recipe.procedures;
+            document.getElementById("modalImage").src = imageSrc;
+
+            // Prepare recipe text to send to get_facts
+            const recipeText = `
+    Title: ${recipe.title}
+    Description: ${recipe.description}
+    Ingredients: ${Array.isArray(recipe.ingredients) ? recipe.ingredients.join(", ") : recipe.ingredients}
+    Procedures: ${Array.isArray(recipe.procedures) ? recipe.procedures.join(", ") : recipe.procedures}
+            `.trim();
+
+            document.getElementById("modalNutrition").textContent = "Loading...";
+
+            const factsResponse = await fetch("https://food-gen.onrender.com/get_facts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipe_text: recipeText })
+            });
+
+            const factsData = await factsResponse.json();
+
+            if (factsData.facts) {
+                const facts = factsData.facts;
+                let formatted = "";
+                for (const [key, value] of Object.entries(facts)) {
+                    const label = key.replace(/([a-z])([A-Z])/g, '$1 $2')
+                                      .replace(/^./, str => str.toUpperCase());
+                    formatted += `${label}: ${value}\n`;
+                }
+                document.getElementById("modalNutrition").textContent = formatted;
+            } else {
+                document.getElementById("modalNutrition").textContent = "Nutrition facts unavailable.";
+            }
+
+            document.getElementById("recipeModal").style.display = "block";
+        } catch (err) {
+            console.error("Error fetching recipe or nutrition facts", err);
+            alert("Failed to fetch recipe or nutrition facts.");
         }
-        document.getElementById("nutritionOutput").textContent = formatted;
-        document.getElementById("nutritionResults").style.display = "block";
-    })
-    .catch(err => {
-        document.getElementById("nutritionOutput").textContent = "Failed to fetch nutrition facts.";
-        document.getElementById("nutritionResults").style.display = "block";
-        console.error("Error fetching nutrition facts", err);
-    });
-});
+    }
+
+    function closeModal() {
+        document.getElementById("recipeModal").style.display = "none";
+    }
+
+    window.onload = function() {
+        loadRecipes();
+        document.getElementById("viewRecipeBtn").addEventListener("click", fetchRecipe);
+    };
 </script>
 </body>
 </html>
