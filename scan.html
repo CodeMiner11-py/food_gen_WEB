@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan a Recipe Image</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        video, canvas {
+          margin-top: 10px;
+          max-width: 300px;
+          border: 2px solid #ccc;
+        }
+        .scanContent .result {
+          text-align: left;
+          margin-top: 20px;
+          display: inline-block;
+        }
+    </style>
+
+    <script>
+        let videoStream = null;
+
+        async function startCamera() {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.getElementById("videoPreview");
+            video.srcObject = stream;
+            videoStream = stream;
+          } catch (err) {
+            alert("Camera access denied or unavailable.");
+            console.error(err);
+          }
+        }
+
+        function captureAndScan() {
+          const video = document.getElementById("videoPreview");
+          const canvas = document.getElementById("snapshot");
+          const ctx = canvas.getContext("2d");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          canvas.toBlob(blob => {
+            const formData = new FormData();
+            formData.append("image", blob, "snapshot.png");
+
+            fetch("https://food-gen.onrender.com/scan_recipe", {
+              method: "POST",
+              body: formData
+            })
+            .then(res => res.json())
+            .then(data => showResult(data))
+            .catch(err => {
+              document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
+            });
+          }, "image/png");
+        }
+
+        function uploadImage(event) {
+          event.preventDefault();
+          const file = document.getElementById("imageUpload").files[0];
+          if (!file) return alert("Choose an image first!");
+
+          const formData = new FormData();
+          formData.append("image", file);
+
+          fetch("https://food-gen.onrender.com/scan_recipe", {
+            method: "POST",
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => showResult(data))
+          .catch(err => {
+            document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
+          });
+        }
+
+        function showResult(data) {
+          const resultBox = document.getElementById("scanResult");
+          if (data.error) {
+            resultBox.innerHTML = `<p><strong>Error:</strong> ${data.error}</p>`;
+            return;
+          }
+
+          resultBox.innerHTML = `
+            <h3>${data.title}</h3>
+            <p><strong>Description:</strong> ${data.description}</p>
+            <p><strong>Ingredients:</strong> ${data.ingredients.join(", ")}</p>
+            <p><strong>Procedures:</strong> ${data.procedures.join(", ")}</p>
+          `;
+        }
+
+        window.onload = startCamera;
+    </script>
+</head>
+
+<body>
+<div style="text-align: center;">
+    <img src="pear.png" width="65">
+    <h1>Pear: Recipes Creator</h1>
+    <div class="divider"></div>
+
+    <div id="navigation">
+        <ul>
+            <li><a href="index.html">Create Recipe</a></li>
+            <li><a href="scan.html"><b>Scan Image</b></a></li>
+            <li><a href="view.html">View Recipes</a></li>
+        </ul>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="scanContent">
+        <h2>Scan a Recipe from Your Camera</h2>
+        <video id="videoPreview" autoplay playsinline></video><br>
+        <button onclick="captureAndScan()">Capture Photo & Scan</button>
+        <br><br>
+        <canvas id="snapshot" style="display:none;"></canvas>
+
+        <h3>Or upload an image:</h3>
+        <form onsubmit="uploadImage(event)">
+            <input type="file" id="imageUpload" accept="image/*" required>
+            <br>
+            <button type="submit">Scan Uploaded Image</button>
+        </form>
+
+        <div id="scanResult" class="result"></div>
+    </div>
+</div>
+</body>
+</html>
