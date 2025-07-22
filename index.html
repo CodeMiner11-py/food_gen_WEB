@@ -86,7 +86,8 @@ window.onload = function () {
         return;
       }
 
-      const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${user_id}&title=${encodeURIComponent(result.title.replace(" ", "_"))}`;
+      const safeTitle = result.title.replace(/ /g, "_");
+      const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${user_id}&title=${encodeURIComponent(safeTitle)}`;
       document.getElementById("recipeResult").innerHTML = `
         <h2>${result.title.replace("_", " ")}</h2>
         <p><strong>Description:</strong> ${result.description}</p>
