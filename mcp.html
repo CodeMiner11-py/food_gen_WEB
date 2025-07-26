@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MCP Download - Pear AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div style="text-align: center;" class="main-content-div">
+    <img src="pear.png" width="65">
+    <h1>Pear: Recipes Creator</h1>
+    <p><i>MCP</i> created by <a href="https://kidslearninglab.com/about">Eshaan Buddhisagar</a></p>
+    <div class="divider"></div>
+    <div id="navigation">
+        <ul>
+            <li><a href="index.html"><b>Create Recipe</b></a></li>
+            <li><a href="scan.html">Scan Image</a></li>
+            <li><a href="view.html">View Recipes</a></li>
+        </ul>
+    </div>
+    <div class="divider"></div>
+    <div class="main-mcp-content">
+        <h2>Download Pear AI MCP</h2>
+        <p>Use the link below to download the MCP. Run <i>run-me-first.py</i> and then come back here for Claude steps.</p>
+        <a href="https://kidslearninglabcom.wordpress.com/wp-content/uploads/2025/07/pear-ai-mcp.zip" download>Click here to download MCP zip file</a>
+        <h2>Claude Installation Steps</h2>
+        <p>When connected to Claude, Pear AI can generate images and generate recipes.</p>
+        <ul>
+            <li>Step 1: Download Claude Desktop by visiting <a href="https://claude.ai/download">this link</a> on a Mac or Windows PC.</li>
+            <li>Step 2: Sign into a Claude account or create a new, free one.</li>
+            <li>Step 3: <b>On a Mac</b>, press Command+, at the same time (Command and comma key).</li>
+            <li>Step 3: <b>On a Windows PC</b>, click the sidebar icon at the top-left if the sidebar isn't there already, and click the profile picture. From there, click Settings.</li>
+            <li>Step 4: Click <b>Developer</b> from the Settings menu.</li>
+            <li>Step 5: Click the <b>Edit Config</b> button.</li>
+            <li>Step 6: Open <b>claude_desktop_config.json</b> in a text editor.</li>
+            <li>Step 7: Copy and paste the text below into the file.</li>
+        </ul>
+        <pre style="text-align: left; margin-left: auto; margin-right:auto;"><code>
+{
+  "mcpServers": {
+    "recipe": {
+      "command": "python3",
+      "args": [
+        "PATH_TO_THE_DIRECTORY_MCP.PY_IS_IN/mcp.py"
+      ]
+    }
+  }
+}
+        </code></pre>
+        <ul>
+            <li>Step 8: Change the text to correctly note the path to the directory mcp.py is in.</li>
+            <li><i>You're good to go! Now, you can ask Claude to generate a recipe and it will work.</i></li>
+        </ul>
+    </div>
+</div>
+</body>
+</html>
