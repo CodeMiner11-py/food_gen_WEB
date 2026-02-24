@@ -1,156 +1,693 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Recipe Thing</title>
-    <link rel="stylesheet" href="style.css">
-    <script>
-        function getCookie(name) {
-          const value = `; ${document.cookie}`;
-          const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) return parts.pop().split(';').shift();
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pear · Recipe Creator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fraunces:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green:     #3d7a3a;
+    --green-mid: #5aaa56;
+    --green-lt:  #a8d8a0;
+    --cream:     #fdf8ee;
+    --yellow:    #f5c842;
+    --orange:    #f08030;
+    --brown:     #5a3e28;
+    --text:      #1e2c1a;
+    --radius:    18px;
+  }
 
-        async function ensureUserId() {
-          let userId = getCookie("user_id");
-          if (!userId) {
-            const response = await fetch("https://food-gen.onrender.com/get_id");
-            const data = await response.json();
-            userId = data.user_id;
-            document.cookie = `user_id=${userId}; path=/; max-age=3153600000`; // ~100 years
-          }
-          return userId;
-        }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        window.onload = function () {
-          document.getElementById("recipeForm").addEventListener("submit", async function(event) {
-            event.preventDefault();
+  html { scroll-behavior: smooth; }
 
-            document.getElementById("loadingBar").style.display = "block";
-            let progress = 0;
-            const progressBar = document.getElementById("progressBar");
-            progressBar.value = progress;
+  body {
+    font-family: 'Fraunces', serif;
+    background: var(--cream);
+    color: var(--text);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
 
-            const form = event.target;
-            const formData = new FormData(form);
+  /* ── BACKGROUND BLOBS ── */
+  .bg-blobs {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    opacity: .13;
+    filter: blur(60px);
+    animation: float 12s ease-in-out infinite alternate;
+  }
+  .blob-1 { width: 500px; height: 500px; background: var(--green-mid); top: -120px; left: -100px; animation-delay: 0s; }
+  .blob-2 { width: 400px; height: 400px; background: var(--yellow);    top: 40%;   right: -80px;  animation-delay: -4s; }
+  .blob-3 { width: 300px; height: 300px; background: var(--orange);    bottom: 5%; left: 20%;     animation-delay: -8s; }
+  @keyframes float { from { transform: translate(0,0) scale(1); } to { transform: translate(20px, 30px) scale(1.06); } }
 
-            const user_id = await ensureUserId();
+  /* ── NAV ── */
+  nav {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Fraunces', serif;
+    font-size: 1.7rem; font-weight: 900;
+    color: var(--green);
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: var(--green);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 4px 14px rgba(61,122,58,.35);
+  }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-links a {
+    padding: 9px 20px;
+    border-radius: 50px;
+    font-weight: 700; font-size: .95rem;
+    color: var(--green);
+    text-decoration: none;
+    transition: background .2s, color .2s;
+  }
+  .nav-links a:hover { background: var(--green); color: #fff; }
+  .nav-links a.active {
+    background: var(--green);
+    color: #fff;
+  }
 
-            const data = {
-              ingredients: formData.get("ingredients").split(",").map(i => i.trim()),
-              budget: parseFloat(formData.get("budget")),
-              time: parseInt(formData.get("time")),
-              serves: parseInt(formData.get("serves")),
-              meal_type: formData.get("meal_type"),
-              user_id: user_id
-            };
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 480px;
+    gap: 40px;
+    align-items: center;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 40px 48px 60px;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--yellow);
+    color: var(--brown);
+    font-weight: 800; font-size: .85rem;
+    padding: 6px 16px;
+    border-radius: 50px;
+    margin-bottom: 20px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .hero-tag span { font-size: 1rem; }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2.4rem, 4.5vw, 4rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 22px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--green);
+  }
+  .hero-desc {
+    font-size: 1.1rem;
+    line-height: 1.65;
+    color: #3d4b38;
+    max-width: 480px;
+    margin-bottom: 36px;
+  }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 
-            try {
-              const response = await fetch("https://food-gen.onrender.com/create_recipe", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-              });
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-family: 'Fraunces', serif;
+    font-weight: 800; font-size: 1rem;
+    cursor: pointer; border: none;
+    text-decoration: none;
+    transition: transform .18s, box-shadow .18s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+    box-shadow: 0 6px 24px rgba(61,122,58,.38);
+  }
+  .btn-primary:hover { box-shadow: 0 10px 32px rgba(61,122,58,.48); }
+  .btn-secondary {
+    background: #fff;
+    color: var(--green);
+    border: 2.5px solid var(--green-lt);
+    box-shadow: 0 3px 12px rgba(0,0,0,.07);
+  }
+  .btn-secondary:hover { border-color: var(--green); }
 
-              // Simulate loading
-              const progressInterval = setInterval(() => {
-                progress += 10;
-                progressBar.value = progress;
-                if (progress >= 83) {
-                  clearInterval(progressInterval);
-                  progressBar.value = 100;
-                }
-              }, 300);
+  /* ── PEAR ILLUSTRATION ── */
+  .hero-visual {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    height: 420px;
+  }
+  .pear-wrap {
+    position: relative;
+    animation: bob 4s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+  .pear-svg { width: 260px; filter: drop-shadow(0 30px 40px rgba(61,122,58,.28)); }
 
-              const result = await response.json();
+  /* orbiting badges */
+  .orbit-badge {
+    position: absolute;
+    background: #fff;
+    border-radius: 14px;
+    padding: 10px 15px;
+    font-weight: 800; font-size: .82rem;
+    color: var(--text);
+    box-shadow: 0 6px 24px rgba(0,0,0,.12);
+    display: flex; align-items: center; gap: 7px;
+    white-space: nowrap;
+    animation: pop-in .6s cubic-bezier(.34,1.56,.64,1) forwards;
+    opacity: 0;
+  }
+  .ob-1 { top: 30px;  left: -30px;  animation-delay: .3s; }
+  .ob-2 { top: 50px;  right: -20px; animation-delay: .5s; }
+  .ob-3 { bottom: 60px; left: -40px; animation-delay: .7s; }
+  .ob-4 { bottom: 40px; right: -30px; animation-delay: .9s; }
+  @keyframes pop-in { to { opacity: 1; transform: scale(1); } from { opacity: 0; transform: scale(.7); } }
+  .ob-dot { width: 10px; height: 10px; border-radius: 50%; }
 
-              if (result.error) {
-                document.getElementById("recipeResult").innerHTML = `<p>Error: ${result.error}</p>`;
-                document.getElementById("loadingBar").style.display = "none";
-                return;
-              }
+  /* ── CARD (FORM) ── */
+  .form-section {
+    position: relative; z-index: 1;
+    max-width: 760px;
+    margin: 0 auto 80px;
+    padding: 0 48px;
+  }
+  .form-card {
+    background: #fff;
+    border-radius: 28px;
+    padding: 44px 48px;
+    box-shadow: 0 12px 60px rgba(61,122,58,.13), 0 2px 8px rgba(0,0,0,.06);
+    border: 1.5px solid rgba(168,216,160,.4);
+  }
+  .form-card h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.7rem; font-weight: 900;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .form-card .subtitle {
+    color: #5a6e55; font-size: .95rem; margin-bottom: 36px;
+  }
 
-              const safeTitle = result.title.replace(/ /g, "_");
-              const imageSrc = `https://food-gen.onrender.com/get_image?user_id=${user_id}&title=${encodeURIComponent(safeTitle)}`;
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 7px; }
+  .form-group.full { grid-column: 1/-1; }
+  label {
+    font-weight: 800; font-size: .82rem;
+    color: var(--green);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  input, select {
+    font-family: 'Fraunces', serif;
+    font-size: .98rem; font-weight: 600;
+    color: var(--text);
+    background: var(--cream);
+    border: 2px solid rgba(168,216,160,.6);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    outline: none;
+    transition: border .2s, box-shadow .2s;
+    appearance: none;
+  }
+  input::placeholder { color: #a8b4a4; font-weight: 600; }
+  input:focus, select:focus {
+    border-color: var(--green-mid);
+    box-shadow: 0 0 0 4px rgba(90,170,86,.15);
+  }
 
-              document.getElementById("recipeResult").innerHTML = `
-                <h2>${result.title}</h2>
-                <p><strong>Description:</strong> ${result.description}</p>
-                <p><strong>Ingredients:</strong> ${Array.isArray(result.ingredients) ? result.ingredients.join(", ") : result.ingredients}</p>
-                <p><strong>Procedures:</strong> ${Array.isArray(result.procedures) ? result.procedures.join(", ") : result.procedures}</p>
-                ${result.image_path ? `<img src="${imageSrc}" alt="Recipe Image">` : ""}
-              `;
+  /* ── CHIPS ── */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .chip {
+    padding: 7px 16px;
+    border-radius: 50px;
+    background: var(--cream);
+    border: 2px solid rgba(168,216,160,.6);
+    font-weight: 700; font-size: .84rem;
+    color: var(--green);
+    cursor: pointer;
+    transition: all .18s;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--green-mid); background: rgba(168,216,160,.18); }
+  .chip.selected { background: var(--green); color: #fff; border-color: var(--green); }
 
-              document.getElementById("loadingBar").style.display = "none";
-            } catch (err) {
-              document.getElementById("recipeResult").innerHTML = `<p>Request failed: ${err.message}</p>`;
-              document.getElementById("loadingBar").style.display = "none";
-            }
-          });
-        };
-    </script>
+  /* ── GENERATE BUTTON ── */
+  .generate-btn {
+    width: 100%;
+    margin-top: 28px;
+    padding: 18px;
+    font-size: 1.1rem;
+    border-radius: var(--radius);
+    background: var(--green);
+    color: #fff;
+    border: none;
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 8px 28px rgba(61,122,58,.35);
+    transition: transform .18s, box-shadow .18s;
+    position: relative; overflow: hidden;
+  }
+  .generate-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+    transform: translateX(-100%);
+    transition: transform .6s;
+  }
+  .generate-btn:hover::before { transform: translateX(100%); }
+  .generate-btn:hover { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(61,122,58,.42); }
+
+  /* spinner */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 3px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* result */
+  .result-box {
+    margin-top: 28px;
+    background: var(--cream);
+    border: 2px solid var(--green-lt);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    font-size: .97rem; line-height: 1.7;
+    display: none;
+    animation: fade-up .4s ease forwards;
+  }
+  @keyframes fade-up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .result-box h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem; color: var(--green);
+    margin-bottom: 10px;
+  }
+
+  /* ── FEATURES ── */
+  .features {
+    position: relative; z-index: 1;
+    max-width: 1160px;
+    margin: 0 auto 100px;
+    padding: 0 48px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .feature-card {
+    background: #fff;
+    border-radius: 22px;
+    padding: 32px 28px;
+    border: 1.5px solid rgba(168,216,160,.35);
+    box-shadow: 0 4px 20px rgba(0,0,0,.05);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(61,122,58,.12); }
+  .feat-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 18px;
+  }
+  .feat-green  { background: rgba(90,170,86,.15); }
+  .feat-yellow { background: rgba(245,200,66,.18); }
+  .feat-orange { background: rgba(240,128,48,.15); }
+  .feature-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem; font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .feature-card p { font-size: .92rem; line-height: 1.6; color: #5a6e55; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 30px 48px 48px;
+    font-size: .87rem; color: #8a9e85;
+  }
+  footer a { color: var(--green); font-weight: 700; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 860px) {
+    nav { padding: 18px 24px; }
+    .hero { grid-template-columns: 1fr; padding: 28px 24px 40px; }
+    .hero-visual { height: 280px; }
+    .pear-svg { width: 180px; }
+    .form-section { padding: 0 24px; }
+    .form-card { padding: 30px 24px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr; padding: 0 24px; }
+  }
+</style>
 </head>
 <body>
-<div style="text-align: center;">
-    <img src="pear.png" width="65">
-    <h1>Pear: Recipes Creator</h1>
-    <p>Created by <a href="https://kidslearninglab.com/about">Eshaan Buddhisagar</a></p>
-    <div class="divider"></div>
 
-    <div id="navigation">
-        <ul>
-            <li><a href="index.html"><b>Create Recipe</b></a></li>
-            <li><a href="scan.html">Scan Image</a></li>
-            <li><a href="view.html">View Recipes</a></li>
-        </ul>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="content">
-        <div class="form-container">
-            <form class="modern-form" id="recipeForm">
-                <label for="ingredients">Ingredients you have (comma-separated)</label>
-                <input type="text" id="ingredients" name="ingredients" placeholder="e.g., eggs, milk, flour" required>
-
-                <label for="budget">Budget for extra ingredients (USD)</label>
-                <input type="number" id="budget" name="budget" step="0.01" placeholder="e.g., 10" required>
-
-                <label for="serves">Number of people to serve</label>
-                <input type="number" id="serves" name="serves" placeholder="e.g., 2" required>
-
-                <label for="time">Time available (in minutes)</label>
-                <input type="number" id="time" name="time" placeholder="e.g., 30" required>
-
-                <label for="meal_type">Meal type</label>
-                <select id="meal_type" name="meal_type" required>
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="snack">Snack</option>
-                    <option value="dessert">Dessert</option>
-                    <option value="vegetarian">Vegetarian</option>
-                    <option value="low_sugar">Low Sugar</option>
-                    <option value="no_carb">No Carb Diet</option>
-                    <option value="protein_rich">Protein Meal</option>
-                    <option value="low_calorie">Low Calorie</option>
-                    <option value="dish">Other</option>
-                </select><br><br>
-
-                <button type="submit">Generate Recipe</button>
-            </form>
-        </div>
-
-        <div id="loadingBar" style="display:none;">
-            <progress id="progressBar" value="0" max="100"></progress>
-        </div>
-        <i>Once you click Generate, it might take several seconds.</i>
-
-        <div id="recipeResult"></div>
-
-        <p>Go to <a href="view.html">the viewing page</a> to see the nutrition facts for this recipe.</p>
-        <p>Your recipe is auto-saved. View it <a href="view.html">here!</a></p>
-    </div>
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
 </div>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">🍐</div>
+    Pear
+  </a>
+  <div class="nav-links">
+    <a href="#" class="active">Create</a>
+    <a href="scan.html">Scan</a>
+    <a href="view.html">My Recipes</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-text">
+    <div class="hero-tag"><span>🍽️</span> AI-Powered Recipes</div>
+    <h1>Cook something <em>amazing</em> with what you've got</h1>
+    <p class="hero-desc">
+      Tell Pear what's in your fridge, your budget, and how hungry you are — 
+      and get a custom recipe in seconds. Perfect for kids and families!
+    </p>
+    <div class="hero-actions">
+      <a href="#create" class="btn btn-primary">✨ Create a Recipe</a>
+      <a href="view.html" class="btn btn-secondary">📋 My Recipes</a>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="orbit-badge ob-1"><div class="ob-dot" style="background:var(--green-mid)"></div>Budget-friendly</div>
+    <div class="orbit-badge ob-2"><div class="ob-dot" style="background:var(--yellow)"></div>AI-generated</div>
+    <div class="orbit-badge ob-3"><div class="ob-dot" style="background:var(--orange)"></div>Nutrition facts</div>
+    <div class="orbit-badge ob-4"><div class="ob-dot" style="background:#e88"></div>Auto-saved</div>
+    <div class="pear-wrap">
+      <svg class="pear-svg" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- stem -->
+        <path d="M102 38 C104 28 112 18 108 8" stroke="#5a3e28" stroke-width="5" stroke-linecap="round"/>
+        <!-- leaf -->
+        <path d="M108 8 C120 4 128 16 112 24" fill="#5aaa56" stroke="#3d7a3a" stroke-width="1.5"/>
+        <path d="M108 8 L112 24" stroke="#3d7a3a" stroke-width="1.2" stroke-linecap="round"/>
+        <!-- body -->
+        <path d="M100 50
+          C80 50 60 62 52 82
+          C44 102 48 122 52 138
+          C60 166 80 190 100 200
+          C120 190 140 166 148 138
+          C152 122 156 102 148 82
+          C140 62 120 50 100 50Z"
+          fill="#a8d870" stroke="#5aaa56" stroke-width="2.5"/>
+        <!-- highlight -->
+        <ellipse cx="80" cy="100" rx="18" ry="30" fill="rgba(255,255,255,.22)" transform="rotate(-15,80,100)"/>
+        <!-- blush -->
+        <ellipse cx="130" cy="155" rx="14" ry="10" fill="rgba(240,128,48,.2)"/>
+        <!-- face -->
+        <circle cx="87" cy="130" r="5" fill="#3d7a3a"/>
+        <circle cx="113" cy="130" r="5" fill="#3d7a3a"/>
+        <path d="M88 150 Q100 162 112 150" stroke="#3d7a3a" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <!-- eye shine -->
+        <circle cx="89" cy="128" r="2" fill="#fff"/>
+        <circle cx="115" cy="128" r="2" fill="#fff"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- FORM CARD -->
+<section class="form-section" id="create">
+  <div class="form-card">
+    <h2>🧑‍🍳 What are you cooking?</h2>
+    <p class="subtitle">Fill in the details below and Pear will whip up a recipe just for you!</p>
+
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>🥦 Ingredients you have</label>
+        <input type="text" id="ingredients" placeholder="e.g. eggs, cheese, spinach, bread">
+      </div>
+
+      <div class="form-group">
+        <label>💵 Extra budget (USD)</label>
+        <input type="number" id="budget" placeholder="e.g. 10" min="0">
+      </div>
+
+      <div class="form-group">
+        <label>👥 Servings</label>
+        <input type="number" id="servings" placeholder="e.g. 4" min="1">
+      </div>
+
+      <div class="form-group">
+        <label>⏱ Time available (mins)</label>
+        <input type="number" id="time" placeholder="e.g. 30" min="1">
+      </div>
+
+      <div class="form-group">
+        <label>🍽 Meal type</label>
+        <select id="meal-type">
+          <option value="">Choose a meal type…</option>
+          <option>Breakfast</option>
+          <option>Lunch</option>
+          <option>Dinner</option>
+          <option>Snack</option>
+          <option>Dessert</option>
+        </select>
+      </div>
+
+      <div class="form-group full">
+        <label>🥗 Dietary preferences</label>
+        <div class="chips" id="diet-chips">
+          <div class="chip" data-value="vegetarian" onclick="toggleChip(this)">Vegetarian</div>
+          <div class="chip" data-value="low_sugar" onclick="toggleChip(this)">Low Sugar</div>
+          <div class="chip" data-value="no_carb" onclick="toggleChip(this)">No Carbs</div>
+          <div class="chip" data-value="protein_rich" onclick="toggleChip(this)">High Protein</div>
+          <div class="chip" data-value="low_calorie" onclick="toggleChip(this)">Low Calorie</div>
+          <div class="chip" data-value="vegan" onclick="toggleChip(this)">Vegan</div>
+          <div class="chip" data-value="gluten_free" onclick="toggleChip(this)">Gluten-Free</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="generate-btn" onclick="generateRecipe()">
+      <div class="spinner" id="spinner"></div>
+      <span id="btn-text">✨ Generate My Recipe</span>
+    </button>
+
+    <div id="progressWrap" style="display:none; margin-top:20px;">
+      <progress id="progressBar" value="0" max="100" style="width:100%; height:10px; border-radius:10px; accent-color:var(--green);"></progress>
+      <p style="text-align:center; font-size:.85rem; color:#8a9e85; margin-top:6px;"><em>This might take a few seconds — Pear is thinking! 🍐</em></p>
+    </div>
+
+    <div class="result-box" id="result">
+      <div id="result-content"></div>
+      <p style="margin-top:16px; font-size:.85rem; color:#8a9e85;">
+        ✅ Auto-saved! View it on your <a href="view.html" style="color:var(--green);font-weight:700;">recipes page</a>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="feature-card">
+    <div class="feat-icon feat-green">🤖</div>
+    <h3>AI-Powered Magic</h3>
+    <p>Pear uses advanced AI to craft unique, tasty recipes based on exactly what you tell it — no two recipes are alike!</p>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon feat-yellow">📸</div>
+    <h3>Scan Your Fridge</h3>
+    <p>Take a photo of your ingredients and Pear will read the image to identify what you have — no typing needed.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon feat-orange">📊</div>
+    <h3>Nutrition Facts</h3>
+    <p>Every recipe comes with a full nutrition breakdown so you can eat smart and stay healthy.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  Created by <a href="https://kidslearninglab.com/about">Eshaan Buddhisagar</a> · 
+  Part of <a href="https://kidslearninglab.com">Kids Learning Lab</a>
+</footer>
+
+<script>
+  const API = 'https://food-gen.onrender.com';
+
+  /* ── cookie helpers ── */
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  async function ensureUserId() {
+    let userId = getCookie('user_id');
+    if (!userId) {
+      const res  = await fetch(`${API}/get_id`);
+      const data = await res.json();
+      userId = data.user_id;
+      document.cookie = `user_id=${userId}; path=/; max-age=3153600000`;
+    }
+    return userId;
+  }
+
+  /* ── chip toggle ── */
+  function toggleChip(el) {
+    el.classList.toggle('selected');
+  }
+
+  /* ── progress bar ── */
+  function startProgress() {
+    let progress = 0;
+    const bar = document.getElementById('progressBar');
+    bar.value = 0;
+    document.getElementById('progressWrap').style.display = 'block';
+    return setInterval(() => {
+      progress += 10;
+      bar.value = Math.min(progress, 83);
+    }, 300);
+  }
+
+  /* ── main generate ── */
+  async function generateRecipe() {
+    const btn           = document.querySelector('.generate-btn');
+    const spinner       = document.getElementById('spinner');
+    const btnText       = document.getElementById('btn-text');
+    const resultBox     = document.getElementById('result');
+    const resultContent = document.getElementById('result-content');
+
+    const ingredientsInput = document.getElementById('ingredients');
+    if (!ingredientsInput.value.trim()) {
+      ingredientsInput.focus();
+      ingredientsInput.style.borderColor = 'var(--orange)';
+      setTimeout(() => ingredientsInput.style.borderColor = '', 1500);
+      return;
+    }
+
+    /* use first selected chip as meal_type, fall back to select value */
+    const selectedChips = [...document.querySelectorAll('.chip.selected')].map(c => c.dataset.value);
+    const meal_type     = selectedChips.length
+      ? selectedChips[0]
+      : (document.getElementById('meal-type').value || 'dish');
+
+    const payload = {
+      ingredients: ingredientsInput.value.split(',').map(i => i.trim()),
+      budget:      parseFloat(document.getElementById('budget').value)  || 0,
+      time:        parseInt(document.getElementById('time').value)       || 30,
+      serves:      parseInt(document.getElementById('servings').value)   || 4,
+      meal_type,
+      user_id:     await ensureUserId()
+    };
+
+    /* loading state */
+    spinner.style.display   = 'block';
+    btnText.textContent     = 'Cooking up your recipe…';
+    btn.disabled            = true;
+    resultBox.style.display = 'none';
+
+    const interval = startProgress();
+
+    try {
+      const res    = await fetch(`${API}/create_recipe`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      clearInterval(interval);
+      document.getElementById('progressBar').value = 100;
+      setTimeout(() => document.getElementById('progressWrap').style.display = 'none', 500);
+
+      if (result.error) {
+        resultContent.innerHTML = `<p style="color:var(--orange)">⚠️ ${result.error}</p>`;
+      } else {
+        const safeTitle = result.title.replace(/ /g, '_');
+        const imageSrc  = `${API}/get_image?user_id=${payload.user_id}&title=${encodeURIComponent(safeTitle)}`;
+
+        const ingredients = Array.isArray(result.ingredients)
+          ? result.ingredients.map(i => `<li>${i}</li>`).join('')
+          : `<li>${result.ingredients}</li>`;
+
+        const procedures = Array.isArray(result.procedures)
+          ? result.procedures.map((p, n) => `<li><strong>${n + 1}.</strong> ${p}</li>`).join('')
+          : `<li>${result.procedures}</li>`;
+
+        resultContent.innerHTML = `
+          <h3 style="font-size:1.4rem; margin-bottom:10px;">🍽 ${result.title}</h3>
+          <p style="margin-bottom:14px; color:#5a6e55;">${result.description}</p>
+          <p style="font-weight:800; margin-bottom:6px; color:var(--green); text-transform:uppercase; font-size:.8rem; letter-spacing:.06em;">Ingredients</p>
+          <ul style="margin:0 0 16px 18px; line-height:1.8;">${ingredients}</ul>
+          <p style="font-weight:800; margin-bottom:6px; color:var(--green); text-transform:uppercase; font-size:.8rem; letter-spacing:.06em;">Steps</p>
+          <ul style="margin:0 0 16px 18px; line-height:1.8;">${procedures}</ul>
+          ${result.image_path ? `<img src="${imageSrc}" alt="Recipe Image" style="width:100%;border-radius:14px;margin-top:8px;">` : ''}
+        `;
+      }
+
+      resultBox.style.display = 'block';
+      resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    } catch (err) {
+      clearInterval(interval);
+      document.getElementById('progressWrap').style.display = 'none';
+      resultContent.innerHTML = `<p style="color:var(--orange)">⚠️ Request failed: ${err.message}</p>`;
+      resultBox.style.display = 'block';
+    } finally {
+      spinner.style.display = 'none';
+      btnText.textContent   = '✨ Generate My Recipe';
+      btn.disabled          = false;
+    }
+  }
+
+  /* ── scroll entrance ── */
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity   = 1;
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: .12 });
+
+  document.querySelectorAll('.feature-card, .form-card').forEach(el => {
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateY(24px)';
+    el.style.transition = 'opacity .5s ease, transform .5s ease';
+    observer.observe(el);
+  });
+</script>
 </body>
 </html>

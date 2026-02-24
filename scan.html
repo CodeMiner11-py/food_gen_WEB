@@ -1,167 +1,531 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Scan a Recipe Image</title>
-    <link rel="stylesheet" href="style.css">
-
-    <style>
-        video, canvas {
-          margin-top: 10px;
-          max-width: 300px;
-          border: 2px solid #ccc;
-        }
-        .scanContent .result {
-          text-align: left;
-          margin-top: 20px;
-          display: inline-block;
-        }
-    </style>
-
-    <script>
-        function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-async function uploadImage(event) {
-  event.preventDefault();
-  const fileInput = document.getElementById("imageUpload");
-  const file = fileInput.files[0];
-  if (!file) {
-    alert("Please select an image.");
-    return;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pear · Scan a Recipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green:     #3d7a3a;
+    --green-mid: #5aaa56;
+    --green-lt:  #a8d8a0;
+    --cream:     #fdf8ee;
+    --yellow:    #f5c842;
+    --orange:    #f08030;
+    --brown:     #5a3e28;
+    --text:      #1e2c1a;
+    --radius:    18px;
   }
 
-  const user_id = getCookie("user_id");
-  if (!user_id) {
-    alert("User ID not found. Please generate a recipe first.");
-    return;
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Fraunces', serif;
+    background: var(--cream);
+    color: var(--text);
+    overflow-x: hidden;
+    min-height: 100vh;
   }
 
-  const formData = new FormData();
-  formData.append("image", file);
-  formData.append("user_id", user_id);
-
-  try {
-    const res = await fetch("https://food-gen.onrender.com/scan_recipe", {
-      method: "POST",
-      body: formData
-    });
-
-    const data = await res.json();
-    showResult(data);
-
-  } catch (err) {
-    document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
+  /* ── BLOBS ── */
+  .bg-blobs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .blob {
+    position: absolute; border-radius: 50%;
+    opacity: .13; filter: blur(60px);
+    animation: float 12s ease-in-out infinite alternate;
   }
-}
+  .blob-1 { width: 500px; height: 500px; background: var(--green-mid); top: -120px; left: -100px; animation-delay: 0s; }
+  .blob-2 { width: 400px; height: 400px; background: var(--yellow);    top: 40%;   right: -80px; animation-delay: -4s; }
+  .blob-3 { width: 300px; height: 300px; background: var(--orange);    bottom: 5%; left: 20%;    animation-delay: -8s; }
+  @keyframes float { from { transform: translate(0,0) scale(1); } to { transform: translate(20px,30px) scale(1.06); } }
 
-let videoStream = null;
-
-async function startCamera() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    const video = document.getElementById("videoPreview");
-    video.srcObject = stream;
-    videoStream = stream;
-  } catch (err) {
-    alert("Camera access denied or unavailable.");
-    console.error(err);
+  /* ── NAV ── */
+  nav {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
   }
-}
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 1.7rem; font-weight: 900;
+    color: var(--green); text-decoration: none;
+  }
+  .logo-icon {
+    width: 44px; height: 44px; background: var(--green);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; box-shadow: 0 4px 14px rgba(61,122,58,.35);
+  }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-links a {
+    padding: 9px 20px; border-radius: 50px;
+    font-weight: 700; font-size: .95rem;
+    color: var(--green); text-decoration: none;
+    transition: background .2s, color .2s;
+  }
+  .nav-links a:hover { background: var(--green); color: #fff; }
+  .nav-links a.active { background: var(--green); color: #fff; }
 
-function captureAndScan() {
-  const video = document.getElementById("videoPreview");
-  const canvas = document.getElementById("snapshot");
-  const ctx = canvas.getContext("2d");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  /* ── PAGE HEADER ── */
+  .page-header {
+    position: relative; z-index: 1;
+    max-width: 960px; margin: 20px auto 0;
+    padding: 0 48px 40px;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--yellow); color: var(--brown);
+    font-weight: 800; font-size: .85rem;
+    padding: 6px 16px; border-radius: 50px;
+    margin-bottom: 18px; letter-spacing: .04em; text-transform: uppercase;
+  }
+  .page-header h1 {
+    font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .page-header h1 em { font-style: italic; color: var(--green); }
+  .page-header p { color: #5a6e55; font-size: 1rem; line-height: 1.6; }
 
-  canvas.toBlob(async (blob) => {
-    const user_id = getCookie("user_id");
-    if (!user_id) {
-      alert("User ID not found. Please generate a recipe first.");
-      return;
+  /* ── MAIN GRID ── */
+  .main-grid {
+    position: relative; z-index: 1;
+    max-width: 960px; margin: 0 auto 80px;
+    padding: 0 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    padding: 36px;
+    box-shadow: 0 12px 60px rgba(61,122,58,.1), 0 2px 8px rgba(0,0,0,.05);
+    border: 1.5px solid rgba(168,216,160,.4);
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .card h2 {
+    font-size: 1.25rem; font-weight: 900;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card p { font-size: .93rem; line-height: 1.65; color: #5a6e55; }
+
+  /* ── CAMERA ── */
+  .camera-wrap {
+    position: relative;
+    background: #f0f4ee;
+    border-radius: var(--radius);
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    border: 2px dashed rgba(168,216,160,.8);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .camera-wrap video {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block;
+  }
+  .camera-placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; color: #8a9e85; font-size: .9rem; text-align: center; padding: 20px;
+  }
+  .camera-placeholder .cam-icon { font-size: 2.5rem; }
+  #videoPreview { display: none; }
+
+  /* viewfinder overlay corners */
+  .camera-wrap::before, .camera-wrap::after {
+    content: ''; position: absolute;
+    width: 28px; height: 28px;
+    border-color: var(--green-mid); border-style: solid;
+    z-index: 2;
+  }
+  .camera-wrap::before { top: 12px; left: 12px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+  .camera-wrap::after  { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+  /* snapshot preview */
+  #snapshot {
+    width: 100%; border-radius: var(--radius);
+    display: none; margin-top: 4px;
+  }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 2.5px dashed rgba(168,216,160,.8);
+    border-radius: var(--radius);
+    background: #f5faf4;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .upload-zone:hover { border-color: var(--green-mid); background: rgba(168,216,160,.12); }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .upload-zone p { font-size: .9rem; color: #5a6e55; }
+  .upload-zone strong { color: var(--green); }
+  #uploadFileName { margin-top: 8px; font-size: .82rem; color: #8a9e85; font-style: italic; }
+  #uploadPreview {
+    width: 100%; border-radius: var(--radius);
+    margin-top: 14px; display: none;
+    object-fit: cover; max-height: 200px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 24px; border-radius: 50px;
+    font-family: 'Fraunces', serif;
+    font-weight: 800; font-size: .95rem;
+    cursor: pointer; border: none; text-decoration: none;
+    transition: transform .18s, box-shadow .18s;
+    width: 100%;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+  .btn-primary {
+    background: var(--green); color: #fff;
+    box-shadow: 0 6px 24px rgba(61,122,58,.32);
+  }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 32px rgba(61,122,58,.42); }
+  .btn-secondary {
+    background: #fff; color: var(--green);
+    border: 2.5px solid var(--green-lt);
+    box-shadow: 0 3px 12px rgba(0,0,0,.06);
+  }
+  .btn-secondary:hover { border-color: var(--green); }
+
+  .btn .spinner {
+    width: 18px; height: 18px;
+    border: 3px solid rgba(255,255,255,.4);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .7s linear infinite; display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── RESULT ── */
+  .result-card {
+    position: relative; z-index: 1;
+    max-width: 960px; margin: 0 auto 80px;
+    padding: 0 48px;
+    display: none;
+    animation: fade-up .4s ease forwards;
+  }
+  @keyframes fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+  .result-inner {
+    background: #fff;
+    border-radius: 28px;
+    padding: 40px 44px;
+    box-shadow: 0 12px 60px rgba(61,122,58,.1), 0 2px 8px rgba(0,0,0,.05);
+    border: 1.5px solid rgba(168,216,160,.4);
+  }
+  .result-inner h3 {
+    font-size: 1.6rem; font-weight: 900; margin-bottom: 18px;
+  }
+  .section-label {
+    font-weight: 800; font-size: .78rem;
+    color: var(--green); text-transform: uppercase;
+    letter-spacing: .07em; margin-bottom: 8px; display: block;
+    margin-top: 20px;
+  }
+  .ingredient-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ingredient-pill {
+    background: var(--cream);
+    border: 1.5px solid rgba(168,216,160,.7);
+    border-radius: 50px; padding: 5px 14px;
+    font-size: .87rem; font-weight: 600;
+  }
+  .step {
+    display: flex; gap: 14px; align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    font-size: .8rem; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .step-text { line-height: 1.6; font-size: .95rem; }
+
+  .result-note {
+    margin-top: 20px; font-size: .87rem; color: #8a9e85;
+    padding-top: 16px; border-top: 1.5px solid rgba(168,216,160,.4);
+  }
+  .result-note a { color: var(--green); font-weight: 700; text-decoration: none; }
+  .result-note a:hover { text-decoration: underline; }
+
+  .error-msg { color: var(--orange); font-size: .95rem; margin-top: 10px; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center; padding: 10px 48px 48px;
+    font-size: .87rem; color: #8a9e85;
+  }
+  footer a { color: var(--green); font-weight: 700; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 720px) {
+    nav { padding: 18px 24px; }
+    .page-header { padding: 0 24px 32px; }
+    .main-grid { grid-template-columns: 1fr; padding: 0 24px; }
+    .result-card { padding: 0 24px; }
+    .result-inner { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="logo">
+    <div class="logo-icon">🍐</div>
+    Pear
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Create</a>
+    <a href="scan.html" class="active">Scan</a>
+    <a href="view.html">My Recipes</a>
+  </div>
+</nav>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div class="hero-tag"><span>📸</span> Image Scanner</div>
+  <h1>Take a photo, and <em>create a meal.</em></h1>
+  <p>
+    Point your camera at a finished dish to get the recipe — or at raw ingredients to see what you can make.
+    You can also upload a photo from your device.
+  </p>
+</div>
+
+<!-- MAIN TWO-COLUMN GRID -->
+<div class="main-grid">
+
+  <!-- CAMERA CARD -->
+  <div class="card">
+    <h2>📷 Use Your Camera</h2>
+    <p>Point at a dish or ingredients, then hit capture.</p>
+
+    <div class="camera-wrap" id="cameraWrap">
+      <div class="camera-placeholder" id="cameraPlaceholder">
+        <div class="cam-icon">📷</div>
+        <span>Starting camera…</span>
+      </div>
+      <video id="videoPreview" autoplay playsinline></video>
+    </div>
+
+    <canvas id="snapshot"></canvas>
+
+    <button class="btn btn-primary" onclick="captureAndScan()" id="captureBtn">
+      <div class="spinner" id="captureSpinner"></div>
+      <span id="captureBtnText">📸 Capture & Scan</span>
+    </button>
+  </div>
+
+  <!-- UPLOAD CARD -->
+  <div class="card">
+    <h2>🖼 Upload an Image</h2>
+    <p>Select a photo from your device — Pear will analyse it and generate a recipe.</p>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="imageUpload" accept="image/*" onchange="handleFileSelect(event)">
+      <div class="upload-icon">📁</div>
+      <p><strong>Click to browse</strong> or drag & drop</p>
+      <p>Supports JPG, PNG, WEBP</p>
+      <div id="uploadFileName"></div>
+    </div>
+
+    <img id="uploadPreview" alt="Upload preview">
+
+    <button class="btn btn-primary" id="uploadBtn" onclick="uploadImage()" disabled>
+      <div class="spinner" id="uploadSpinner"></div>
+      <span id="uploadBtnText">🔍 Scan Uploaded Image</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- RESULT -->
+<div class="result-card" id="resultCard">
+  <div class="result-inner">
+    <h3 id="resultTitle"></h3>
+    <p id="resultDesc" style="color:#5a6e55; line-height:1.65;"></p>
+
+    <span class="section-label">🥦 Ingredients</span>
+    <div class="ingredient-pills" id="resultIngredients"></div>
+
+    <span class="section-label">👩‍🍳 Steps</span>
+    <div id="resultSteps"></div>
+
+    <div class="result-note">
+      ✅ Recipe auto-saved! View it on your <a href="view.html">recipes page</a>.
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  Created by <a href="https://kidslearninglab.com/about">Eshaan Buddhisagar</a> ·
+  Part of <a href="https://kidslearninglab.com">Kids Learning Lab</a>
+</footer>
+
+<script>
+  const API = 'https://food-gen.onrender.com';
+
+  /* ── cookie ── */
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  /* ── camera ── */
+  window.onload = async function () {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const video  = document.getElementById('videoPreview');
+      video.srcObject = stream;
+      video.style.display = 'block';
+      document.getElementById('cameraPlaceholder').style.display = 'none';
+    } catch {
+      document.getElementById('cameraPlaceholder').innerHTML =
+        '<div class="cam-icon">🚫</div><span>Camera unavailable or access denied</span>';
     }
+  };
 
+  /* ── capture ── */
+  function captureAndScan() {
+    const video  = document.getElementById('videoPreview');
+    const canvas = document.getElementById('snapshot');
+    const ctx    = canvas.getContext('2d');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.style.display = 'block';
+
+    canvas.toBlob(async (blob) => {
+      const user_id = getCookie('user_id');
+      if (!user_id) return alert('User ID not found. Please generate a recipe first on the Create page.');
+
+      setLoading('capture', true);
+      const formData = new FormData();
+      formData.append('image', blob, 'snapshot.png');
+      formData.append('user_id', user_id);
+
+      try {
+        const res  = await fetch(`${API}/scan_recipe`, { method: 'POST', body: formData });
+        const data = await res.json();
+        showResult(data);
+      } catch (err) {
+        showError('Capture failed: ' + err.message);
+      } finally {
+        setLoading('capture', false);
+      }
+    }, 'image/png');
+  }
+
+  /* ── file select ── */
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    document.getElementById('uploadFileName').textContent = file.name;
+    document.getElementById('uploadBtn').disabled = false;
+
+    const preview = document.getElementById('uploadPreview');
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  }
+
+  /* ── upload ── */
+  async function uploadImage() {
+    const fileInput = document.getElementById('imageUpload');
+    const file = fileInput.files[0];
+    if (!file) return alert('Please select an image.');
+
+    const user_id = getCookie('user_id');
+    if (!user_id) return alert('User ID not found. Please generate a recipe first on the Create page.');
+
+    setLoading('upload', true);
     const formData = new FormData();
-    formData.append("image", blob, "snapshot.png");
-    formData.append("user_id", user_id);
+    formData.append('image', file);
+    formData.append('user_id', user_id);
 
     try {
-      const res = await fetch("https://food-gen.onrender.com/scan_recipe", {
-        method: "POST",
-        body: formData
-      });
+      const res  = await fetch(`${API}/scan_recipe`, { method: 'POST', body: formData });
       const data = await res.json();
       showResult(data);
     } catch (err) {
-      document.getElementById("scanResult").innerHTML = `<p>Error: ${err.message}</p>`;
+      showError('Upload failed: ' + err.message);
+    } finally {
+      setLoading('upload', false);
     }
-  }, "image/png");
-}
-
-function showResult(data) {
-  const resultBox = document.getElementById("scanResult");
-  if (data.error) {
-    resultBox.innerHTML = `<p><strong>Error:</strong> ${data.error}</p>`;
-    return;
   }
 
-  resultBox.innerHTML = `
-    <h3>${data.title}</h3>
-    <p><strong>Description:</strong> ${data.description}</p>
-    <p><strong>Ingredients:</strong> ${data.ingredients.join(", ")}</p>
-    <p><strong>Procedures:</strong> ${data.procedures.join(", ")}</p>
-  `;
-}
+  /* ── show result ── */
+  function showResult(data) {
+    const card = document.getElementById('resultCard');
 
-window.onload = startCamera;
+    if (data.error) {
+      showError(data.error);
+      return;
+    }
 
-    </script>
-</head>
+    document.getElementById('resultTitle').textContent = '🍽 ' + data.title;
+    document.getElementById('resultDesc').textContent  = data.description || '';
 
-<body>
-<div style="text-align: center;">
-    <img src="pear.png" width="65">
-    <h1>Pear: Recipes Creator</h1>
-    <p>Created by <a href="https://kidslearninglab.com/about">Eshaan Buddhisagar</a></p>
-    <div class="divider"></div>
+    const ingredients = Array.isArray(data.ingredients)
+      ? data.ingredients : data.ingredients.split(',').map(s => s.trim());
+    document.getElementById('resultIngredients').innerHTML =
+      ingredients.map(i => `<span class="ingredient-pill">${i}</span>`).join('');
 
-    <div id="navigation">
-        <ul>
-            <li><a href="index.html">Create Recipe</a></li>
-            <li><a href="scan.html"><b>Scan Image</b></a></li>
-            <li><a href="view.html">View Recipes</a></li>
-        </ul>
-    </div>
+    const procedures = Array.isArray(data.procedures)
+      ? data.procedures : data.procedures.split(',').map(s => s.trim());
+    document.getElementById('resultSteps').innerHTML =
+      procedures.map((p, n) => `
+        <div class="step">
+          <div class="step-num">${n + 1}</div>
+          <div class="step-text">${p}</div>
+        </div>`).join('');
 
-    <div class="divider"></div>
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
-    <div class="scanContent">
-        <h2>Scan a Recipe from Your Camera</h2>
-        <p>Do one of the following.</p>
-        <p>1. Take a picture of a completed food (and get a recipe on how to make it).</p>
-        <p>2. Take a picture of ingredients (and get a recipe to make with it).</p>
-        <video id="videoPreview" autoplay playsinline></video><br>
-        <button onclick="captureAndScan()">Capture Photo & Scan</button>
-        <br><br>
-        <canvas id="snapshot" style="display:none;"></canvas>
+  function showError(msg) {
+    const card = document.getElementById('resultCard');
+    card.style.display = 'block';
+    card.querySelector('.result-inner').innerHTML =
+      `<p class="error-msg">⚠️ ${msg}</p>`;
+    card.scrollIntoView({ behavior: 'smooth' });
+  }
 
-        <h3>Or upload an image:</h3>
-        <form onsubmit="uploadImage(event)">
-            <input type="file" id="imageUpload" accept="image/*" required>
-            <br>
-            <button type="submit">Scan Uploaded Image</button>
-        </form>
-        <br>
-        <div>This may take some time, so hold on tight! (Est. 5 sec or less)</div>
-        <div>You can view your recipe in <a href="view.html">View Recipes</a>.</div>
-        <div id="scanResult" class="result"></div>
-    </div>
-</div>
+  /* ── loading state helper ── */
+  function setLoading(which, on) {
+    if (which === 'capture') {
+      document.getElementById('captureSpinner').style.display = on ? 'block' : 'none';
+      document.getElementById('captureBtnText').textContent   = on ? 'Scanning…' : '📸 Capture & Scan';
+      document.getElementById('captureBtn').disabled = on;
+    } else {
+      document.getElementById('uploadSpinner').style.display = on ? 'block' : 'none';
+      document.getElementById('uploadBtnText').textContent   = on ? 'Scanning…' : '🔍 Scan Uploaded Image';
+      document.getElementById('uploadBtn').disabled = on;
+    }
+  }
+</script>
 </body>
 </html>
