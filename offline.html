@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>No Connection</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+      text-align: center;
+      padding: 40px;
+      box-sizing: border-box;
+      transform: scale(1.15);
+    }
+
+    .wifi {
+      width: 180px;
+      height: 180px;
+      opacity: 0.95;
+    }
+
+    .message {
+      margin-top: 30px;
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .subtext {
+      margin-top: 14px;
+      font-size: 22px;
+      color: #bdbdbd;
+      max-width: 420px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="screen">
+
+    <svg class="wifi" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+      <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+      <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+      <line x1="2" y1="2" x2="22" y2="22"/>
+      <circle cx="12" cy="20" r="1"/>
+    </svg>
+
+    <div class="message">
+      Pear AI needs Wi-Fi to run!
+    </div>
+
+    <div class="subtext">
+      Please reconnect to the internet and try again.
+    </div>
+
+  </div>
+</body>
+</html>

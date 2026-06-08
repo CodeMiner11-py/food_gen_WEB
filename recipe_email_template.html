@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pear Recipe Email</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pear-50:  #f3faf0;
+      --pear-100: #e2f4dc;
+      --pear-200: #bfe6b6;
+      --pear-400: #72c45e;
+      --pear-600: #3d8c2a;
+      --pear-800: #1e4d14;
+      --ink:      #1a241a;
+      --ink-muted:#4a5e48;
+      --border:   #d4e8d0;
+      --bg:       #f7faf4;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      margin: 0;
+      padding: 32px 16px 60px;
+    }
+
+    .email-wrap {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .email-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(60,100,50,.08);
+    }
+
+    /* ── HEADER ── */
+    .email-header {
+      background: linear-gradient(135deg, #e4f5df 0%, #c8ecbe 100%);
+      padding: 28px 32px 24px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .header-logo {
+      position: absolute;
+      top: 24px; right: 28px;
+      display: flex; align-items: center; gap: 7px;
+      opacity: .85;
+    }
+    .header-logo img { width: 28px; height: 28px; object-fit: contain; }
+    .header-logo .brand {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--pear-800);
+    }
+
+    .sender-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 5px 14px 5px 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--pear-800);
+      margin-bottom: 16px;
+    }
+    .sender-avatar {
+      width: 26px; height: 26px;
+      background: var(--pear-600);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; color: #fff;
+    }
+    .sender-pill .msg { color: var(--ink-muted); font-weight: 400; }
+
+    .email-category {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--pear-600);
+      margin-bottom: 8px;
+    }
+    .email-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+    .email-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--ink-muted);
+      max-width: 460px;
+    }
+
+    /* ── HERO IMAGE ── */
+    .hero-wrap { padding: 24px 32px 0; }
+    .hero-img {
+      width: 100%;
+      height: 260px;
+      object-fit: cover;
+      border-radius: 14px;
+      display: block;
+      background: var(--pear-100);
+    }
+
+    /* ── BODY ── */
+    .email-body { padding: 24px 32px 28px; }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      color: var(--pear-600);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 22px 0 10px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Ingredients — populated via {{ingredientsHtml}} as <li> tags */
+    .ingredients-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 20px;
+    }
+    .ingredients-list li {
+      font-size: 13.5px;
+      color: var(--ink);
+      line-height: 1.5;
+      padding-left: 14px;
+      position: relative;
+    }
+    .ingredients-list li::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 8px;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--pear-400);
+    }
+
+    /* Steps — populated via {{stepsHtml}} as <li> tags.
+       Each <li> should contain:
+         <div class="step-num">N</div><span>Step text here</span>        */
+    .steps-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .steps-list li {
+      font-size: 13.5px;
+      color: var(--ink);
+      line-height: 1.6;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .step-num {
+      min-width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--pear-600);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .nutrition-text {
+      font-size: 13px;
+      color: var(--ink-muted);
+      line-height: 1.7;
+    }
+
+    /* ── FOOTER ── */
+    .email-footer {
+      border-top: 1px solid var(--border);
+      background: var(--pear-50);
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .footer-brand {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--ink-muted);
+    }
+    .footer-brand img { width: 18px; height: 18px; object-fit: contain; opacity: .7; }
+    .footer-date { font-size: 11.5px; color: #9aad98; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 480px) {
+      .email-header,
+      .email-body,
+      .email-footer  { padding-left: 20px; padding-right: 20px; }
+      .hero-wrap     { padding-left: 20px; padding-right: 20px; }
+      .ingredients-list { grid-template-columns: 1fr; }
+      .email-title   { font-size: 24px; }
+      .header-logo   { position: static; margin-bottom: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="email-wrap">
+  <div class="email-card">
+
+    <!-- HEADER -->
+    <div class="email-header">
+
+      <div class="header-logo">
+        <img src="https://kidslearninglab.com/pear%201.png" alt="Pear">
+        <span class="brand">Pear</span>
+      </div>
+
+      <div class="sender-pill">
+        <div class="sender-avatar">{{senderInitials}}</div>
+        <span>{{senderName}}</span>
+        <span class="msg">&nbsp;sent you a recipe</span>
+      </div>
+
+      <div class="email-category">Pear Recipe</div>
+      <h1 class="email-title">{{title}}</h1>
+      <p class="email-desc">{{description}}</p>
+
+    </div>
+
+    <!-- HERO IMAGE -->
+    <div class="hero-wrap">
+      <img class="hero-img" src="{{imageUrl}}" alt="{{title}}">
+    </div>
+
+    <!-- BODY -->
+    <div class="email-body">
+
+      <div class="section-label">Ingredients</div>
+      <ul class="ingredients-list">
+        {{ingredientsHtml}}
+      </ul>
+
+      <div class="section-label">Steps</div>
+      <ol class="steps-list">
+        {{stepsHtml}}
+      </ol>
+
+      <div class="section-label">Nutrition</div>
+      <p class="nutrition-text">{{nutritionText}}</p>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="email-footer">
+      <div class="footer-brand">
+        <img src="https://kidslearninglab.com/pear%201.png" alt="Pear">
+        Sent with Pear
+      </div>
+      <span class="footer-date">{{sentAt}}</span>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
